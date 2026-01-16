@@ -121,6 +121,13 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
+    /* 让卡片内的链接占满整个卡片 */
+    .card a {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
     .section-title {
       font-size: 1.4rem;
       margin: 24px 0 12px;
@@ -274,24 +281,58 @@
 
     <div class="right-panel panel">
       <h2 class="section-title">最近文章</h2>
-      <div class="card"><h3>关于宇宙的三个猜想</h3><p>高级文明是否真的存在？</p><div class="btn-placeholder"></div></div>
-      <div class="card"><h3>用HTML写一个可爱的博客</h3><p>响应式、双栏滚动、淡蓝配色。</p><div class="btn-placeholder"></div></div>
-      <div class="card"><h3>星球与火箭壁纸设计</h3><p>三颗行星环绕恒星，中间那颗最亮。</p><div class="btn-placeholder"></div></div>
-      <div class="card"><h3>今日份的猫</h3><p>它又在我的键盘上睡觉了……</p><div class="btn-placeholder"></div></div>
+      <!-- 文章区域：由 JS 动态生成 -->
+      <div id="articlesContainer"></div>
     </div>
   </div>
 
   <script>
+    // ===== 文章数据（JavaScript 列表）=====
+    const articles = [
+      {
+        title: "关于宇宙的三个猜想",
+        summary: "高级文明是否真的存在？",
+        url: "https://example.com/post1"
+      },
+      {
+        title: "用HTML写一个可爱的博客",
+        summary: "响应式、双栏滚动、淡蓝配色。",
+        url: "https://example.com/post2"
+      },
+      {
+        title: "星球与火箭壁纸设计",
+        summary: "三颗行星环绕恒星，中间那颗最亮。",
+        url: "https://example.com/post3"
+      },
+      {
+        title: "今日份的猫",
+        summary: "它又在我的键盘上睡觉了……",
+        url: "https://example.com/post4"
+      }
+    ];
+
+    // ===== 渲染文章列表 =====
+    function renderArticles() {
+      const container = document.getElementById('articlesContainer');
+      container.innerHTML = articles.map(article => `
+        <div class="card">
+          <a href="${article.url}" target="_blank">
+            <h3>${article.title}</h3>
+            <p>${article.summary}</p>
+            <div class="btn-placeholder"></div>
+          </a>
+        </div>
+      `).join('');
+    }
+
     // ===== 判断背景明暗，返回齿轮颜色 =====
     function getGearColor() {
       const bg = window.getComputedStyle(document.body).backgroundColor;
-      // 解析 rgb(r, g, b)
       const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       if (!match) return '#2c3e50';
       const r = parseInt(match[1]), g = parseInt(match[2]), b = parseInt(match[3]);
-      // 计算亮度（YIQ 公式简化）
       const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-      return brightness > 160 ? '#2c3e50' : '#ffffff'; // 浅背景用深色，深背景用白色
+      return brightness > 160 ? '#2c3e50' : '#ffffff';
     }
 
     // ===== 点击生成 ⚙ 特效 =====
@@ -303,11 +344,7 @@
       gear.style.left = (e.clientX - 12) + 'px';
       gear.style.top = (e.clientY - 12) + 'px';
       document.getElementById('gearContainer').appendChild(gear);
-
-      // 动画结束后移除
-      setTimeout(() => {
-        gear.remove();
-      }, 1000);
+      setTimeout(() => gear.remove(), 1000);
     });
 
     // ===== 菜单控制 =====
@@ -333,35 +370,69 @@
       { name: '海洋', path: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80' },
     ];
 
-    const imageBgOptions = document.getElementById('imageBgOptions');
-    imageBackgrounds.forEach(img => {
-      const option = document.createElement('div');
-      option.className = 'setting-option';
-      option.innerHTML = `<span class="bg-preview" style="background-image: url(${img.path});"></span>${img.name}`;
-      option.addEventListener('click', () => {
-        document.body.style.background = `url(${img.path}) no-repeat center center fixed`;
+    // ===== 应用背景并保存到 localStorage =====
+    function applyBackground(bgType, value) {
+      if (bgType === 'color') {
+        document.body.style.background = value;
+        document.body.style.backgroundSize = '';
+      } else if (bgType === 'image') {
+        document.body.style.background = `url(${value}) no-repeat center center fixed`;
         document.body.style.backgroundSize = 'cover';
-        menu.classList.remove('open');
-        overlay.classList.remove('show');
-      });
-      imageBgOptions.appendChild(option);
-    });
+      }
+      // 保存
+      localStorage.setItem('bgType', bgType);
+      localStorage.setItem('bgValue', value);
+    }
 
-    // ===== 纯色背景 =====
-    const bgMap = {
-      default: '#f0f8ff',
-      lightblue: '#e6f2ff',
-      white: '#ffffff',
-      dark: '#2c3e50'
-    };
+    // ===== 初始化背景（页面加载时恢复）=====
+    function initBackground() {
+      const savedType = localStorage.getItem('bgType');
+      const savedValue = localStorage.getItem('bgValue');
+      if (savedType && savedValue) {
+        applyBackground(savedType, savedValue);
+      }
+    }
 
-    document.querySelectorAll('.setting-option[data-bg]').forEach(opt => {
-      opt.addEventListener('click', () => {
-        const key = opt.getAttribute('data-bg');
-        document.body.style.background = bgMap[key] || '#f0f8ff';
-        menu.classList.remove('open');
-        overlay.classList.remove('show');
+    // ===== 绑定菜单事件 =====
+    function bindMenuEvents() {
+      const bgMap = {
+        default: '#f0f8ff',
+        lightblue: '#e6f2ff',
+        white: '#ffffff',
+        dark: '#2c3e50'
+      };
+
+      // 纯色背景
+      document.querySelectorAll('.setting-option[data-bg]').forEach(opt => {
+        opt.addEventListener('click', () => {
+          const key = opt.getAttribute('data-bg');
+          applyBackground('color', bgMap[key] || '#f0f8ff');
+          menu.classList.remove('open');
+          overlay.classList.remove('show');
+        });
       });
+
+      // 图片背景
+      const imageBgOptions = document.getElementById('imageBgOptions');
+      imageBgOptions.innerHTML = '';
+      imageBackgrounds.forEach(img => {
+        const option = document.createElement('div');
+        option.className = 'setting-option';
+        option.innerHTML = `<span class="bg-preview" style="background-image: url(${img.path});"></span>${img.name}`;
+        option.addEventListener('click', () => {
+          applyBackground('image', img.path);
+          menu.classList.remove('open');
+          overlay.classList.remove('show');
+        });
+        imageBgOptions.appendChild(option);
+      });
+    }
+
+    // ===== 页面加载完成后初始化 =====
+    document.addEventListener('DOMContentLoaded', () => {
+      renderArticles();     // 渲染文章
+      bindMenuEvents();     // 绑定菜单
+      initBackground();     // 恢复背景
     });
   </script>
 </body>
