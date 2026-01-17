@@ -55,15 +55,23 @@ html, body {
 @media (min-aspect-ratio: 1/1) and (min-width: 768px) {
   .layout {
     flex-direction: row;
-    overflow: hidden;
+    overflow: hidden; /* 保持整体无滚动 */
   }
   .left-panel, .right-panel {
     height: 100vh;
-    overflow-y: auto;
+    overflow-y: auto; /* 允许各自滚动 */
     padding: 20px;
+    box-sizing: border-box; /* 确保 padding 不撑大 */
   }
-  .left-panel { width: 40%; border-right: 1px solid #e0e0e0; }
-  .right-panel { width: 60%; padding-left: 30px; }
+  .left-panel {
+    width: 40%;
+    border-right: 1px solid #e0e0e0;
+    /* 可选：如果内容少也想有滚动感，可加 min-height，但非必需 */
+  }
+  .right-panel {
+    width: 60%;
+    padding-left: 30px;
+  }
 }
 
 .panel { padding: 20px; }
