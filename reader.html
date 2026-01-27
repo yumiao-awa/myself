@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reader</title>
+  <link rel="icon" type="image/png" href="important-img/icon.png">
+  <!-- 引用主样式 -->
+  <link rel="stylesheet" href="style.css">
+  <!-- 引用阅读器专属样式 -->
+  <link rel="stylesheet" href="reader.css">
+</head>
+<body>
+
+  <!-- 齿轮特效容器 -->
+  <div class="gear-effect-container" id="gearContainer"></div>
+
+  <!-- 设置按钮 -->
+  <div class="settings-toggle" id="settingsToggle">⇔</div>
+
+  <!-- 菜单遮罩 -->
+  <div class="overlay" id="menuOverlay"></div>
+
+  <!-- 设置菜单 -->
+  <div class="settings-menu" id="settingsMenu">
+    <h3>⚙️ 设置</h3>
+    <div class="setting-section">
+      <h4>🎨 纯色背景</h4>
+      <div class="setting-option" data-bg="default">默认淡蓝</div>
+      <div class="setting-option" data-bg="lightblue">浅蓝色</div>
+      <div class="setting-option" data-bg="white">纯白</div>
+      <div class="setting-option" data-bg="dark">深灰</div>
+    </div>
+    <div class="setting-section">
+      <h4>🖼️ 图片背景</h4>
+      <div id="imageBgOptions"></div>
+    </div>
+  </div>
+
+  <!-- 主布局 -->
+  <div class="layout">
+    <!-- 左侧：完全复用 -->
+    <div class="left-panel panel">
+      <div class="avatar">
+        <a href="important-img/avatar.png"><img src="important-img/avatar.png"></a>
+      </div>
+      <h1>Hello!</h1>
+      <p>欢迎来到我的小站～这里记录一些想法、项目和日常。</p>
+      <div class="tags">
+        <span class="tag">前端</span>
+        <span class="tag">异星来客</span>
+        <span class="tag">学生</span>
+        <span class="tag">猫娘</span>
+      </div>
+      <div class="btn-placeholder"><a href="https://github.com/yumiao-awa">我的github账号</a></div>
+      <div class="btn-placeholder"><a href="https://github.com/yumiao-awa/myself">网页源代码</a></div>
+    </div>
+
+    <!-- 右侧：阅读区 -->
+    <div class="right-panel panel reader-panel">
+      <h2 class="section-title">📖 阅读器</h2>
+      <div id="reader-content" class="reader-content">
+        <p>正在加载……</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 获取 URL 参数中的 file =====
+    function getUrlParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    // ===== 加载 TXT 文件 =====
+    async function loadTextFile(filename) {
+      const contentEl = document.getElementById('reader-content');
+      if (!filename) {
+        contentEl.innerHTML = '<p>❌ 未指定文件。请在 URL 中添加 ?file=xxx.txt</p>';
+        return;
+      }
+
+      try {
+        const response = await fetch(filename);
+        if (!response.ok) throw new Error('文件未找到');
+        const text = await response.text();
+        // 转义 HTML 特殊字符，防止 XSS
+        const safeText = text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        contentEl.innerHTML = `<pre>${safeText}</pre>`;
+      } catch (err) {
+        contentEl.innerHTML = `<p>❌ 加载失败：${err.message}</p>`;
+      }
+    }
+
+    // ===== 复用主页面的通用功能 =====
+    function getGearColor() {
+      const bg = window.getComputedStyle(document.body).backgroundColor;
+      const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (!match) return '#2c3e50';
+      const r = parseInt(match[1]), g = parseInt(match[2]), b = parseInt(match[3]);
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      return brightness > 160 ? '#2c3e50' : '#ffffff';
+    }
+
+    document.addEventListener('click', function(e) {
+      const gear = document.createElement('div');
+      gear.className = 'gear-effect';
+      gear.textContent = '⚙';
+      gear.style.color = getGearColor();
+      gear.style.left = (e.clientX - 12) + 'px';
+      gear.style.top = (e.clientY - 12) + 'px';
+      document.getElementById('gearContainer').appendChild(gear);
+      setTimeout(() => gear.remove(), 1000);
+    });
+
+    // ===== 菜单 & 背景设置（使用独立 localStorage key 避免冲突）=====
+    const toggleBtn = document.getElementById('settingsToggle');
+    const menu = document.getElementById('settingsMenu');
+    const overlay = document.getElementById('menuOverlay');
+
+    if (toggleBtn && menu && overlay) {
+      toggleBtn.addEventListener('click', () => {
+        menu.classList.add('open');
+        overlay.classList.add('show');
+      });
+
+      overlay.addEventListener('click', () => {
+        menu.classList.remove('open');
+        overlay.classList.remove('show');
+      });
+    }
+
+    const imageBackgrounds = [
+      { name: '星空', path: 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80' },
+      { name: '森林', path: 'https://images.unsplash.com/photo-1543512214-3070928057d1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80' },
+      { name: '甘城', path: 'img/neko.png' },
+      { name: '海洋', path: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80' },
+    ];
+
+    function applyBackground(bgType, value) {
+      if (bgType === 'color') {
+        document.body.style.background = value;
+        document.body.style.backgroundSize = '';
+      } else if (bgType === 'image') {
+        document.body.style.background = `url(${value}) no-repeat center center fixed`;
+        document.body.style.backgroundSize = 'cover';
+      }
+      localStorage.setItem('reader-bgType', bgType);
+      localStorage.setItem('reader-bgValue', value);
+    }
+
+    function initBackground() {
+      const savedType = localStorage.getItem('reader-bgType');
+      const savedValue = localStorage.getItem('reader-bgValue');
+      if (savedType && savedValue) {
+        applyBackground(savedType, savedValue);
+      }
+    }
+
+    function bindMenuEvents() {
+      const bgMap = {
+        default: '#f0f8ff',
+        lightblue: '#e6f2ff',
+        white: '#ffffff',
+        dark: '#2c3e50'
+      };
+
+      document.querySelectorAll('.setting-option[data-bg]').forEach(opt => {
+        opt.addEventListener('click', () => {
+          const key = opt.getAttribute('data-bg');
+          applyBackground('color', bgMap[key] || '#f0f8ff');
+          menu.classList.remove('open');
+          overlay.classList.remove('show');
+        });
+      });
+
+      const imageBgOptions = document.getElementById('imageBgOptions');
+      if (imageBgOptions) {
+        imageBgOptions.innerHTML = '';
+        imageBackgrounds.forEach(img => {
+          const option = document.createElement('div');
+          option.className = 'setting-option';
+          option.innerHTML = `<span class="bg-preview" style="background-image: url(${img.path});"></span>${img.name}`;
+          option.addEventListener('click', () => {
+            applyBackground('image', img.path);
+            menu.classList.remove('open');
+            overlay.classList.remove('show');
+          });
+          imageBgOptions.appendChild(option);
+        });
+      }
+    }
+
+    // ===== 初始化 =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const file = getUrlParam('file');
+      loadTextFile(file);
+      bindMenuEvents();
+      initBackground();
+    });
+  </script>
+</body>
+</html>
