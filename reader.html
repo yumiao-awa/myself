@@ -49,35 +49,19 @@
     <div class="right-panel panel reader-panel">
       <h2 class="section-title">📖 阅读器</h2>
       <div id="reader-content" class="reader-content">
-        <p>正在加载彩蛋列表……</p>
+        <p>正在加载……</p>
       </div>
     </div>
   </div>
 
   <script>
-    // ===== 全局变量：彩蛋列表 =====
-    let easterEggs = null;
-
-    // ===== 从 JSON 加载彩蛋 =====
-    async function loadEasterEggsFromJSON() {
-      const contentEl = document.getElementById('reader-content');
-      try {
-        const res = await fetch('easter-eggs.json');
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        easterEggs = await res.json();
-        return true;
-      } catch (err) {
-        contentEl.innerHTML = `
-          <p>❌ 彩蛋系统初始化失败：</p>
-          <p><code>${err.message}</code></p>
-          <p>请确保 <strong>easter-eggs.json</strong> 文件存在且格式正确。</p>
-        `;
-        console.error('Failed to load easter-eggs.json:', err);
-        return false;
-      }
-    }
+    // ===== 彩蛋列表（直接内嵌）=====
+    const easterEggs = [
+      { key: 'secret', url: 'https://yumiao-awa.github.io/Client/book/yumiao' },
+      { key: 'neko', url: 'img/neko.png' },
+      { key: 'github', url: 'https://github.com/yumiao-awa' },
+      { key: 'blog', url: 'index.html' }
+    ];
 
     // ===== 获取 URL 参数 =====
     function getUrlParam(name) {
@@ -94,25 +78,15 @@
         return;
       }
 
-      // 如果彩蛋列表未加载成功，不再尝试
-      if (easterEggs === null) {
-        contentEl.innerHTML = '<p>⚠️ 彩蛋系统未就绪，请刷新页面。</p>';
-        return;
-      }
-
       // 检查是否为彩蛋
       const egg = easterEggs.find(item => item.key === filename);
-      if (egg) {
-        if (egg.url) {
-          window.open(egg.url, '_blank');
-          contentEl.innerHTML = `<p>✨ 彩蛋已触发！正在跳转……</p>`;
-        } else {
-          contentEl.innerHTML = `<p>⚠️ 彩蛋 "${filename}" 无有效链接。</p>`;
-        }
+      if (egg && egg.url) {
+        window.open(egg.url, '_blank');
+        contentEl.innerHTML = `<p>✨ 彩蛋已触发！正在跳转……</p>`;
         return;
       }
 
-      // 否则加载普通文本文件
+      // 否则当作普通文本文件加载
       try {
         const response = await fetch(filename);
         if (!response.ok) throw new Error('文件未找到');
@@ -127,7 +101,7 @@
       }
     }
 
-    // ===== 复用通用功能 =====
+    // ===== 齿轮点击特效 =====
     function getGearColor() {
       const bg = window.getComputedStyle(document.body).backgroundColor;
       const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -225,28 +199,12 @@
       }
     }
 
-    // ===== 初始化流程 =====
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 1. 先加载彩蛋列表
-      const eggsLoaded = await loadEasterEggsFromJSON();
-
-      // 2. 初始化 UI
+    // ===== 初始化 =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const file = getUrlParam('file');
+      loadContent(file);       // 立即加载，不等待任何异步操作
       bindMenuEvents();
       initBackground();
-
-      // 3. 如果彩蛋加载成功，再处理 URL 参数
-      if (eggsLoaded) {
-        const file = getUrlParam('file');
-        if (file) {
-          loadContent(file);
-        } else {
-          document.getElementById('reader-content').innerHTML = `
-            <p>📘 欢迎使用阅读器！</p>
-            <p>用法：<code>?file=路径/文件.txt</code></p>
-            <p>或输入彩蛋关键词触发隐藏内容。</p>
-          `;
-        }
-      }
     });
   </script>
 </body>
