@@ -10,7 +10,6 @@
 
   <!-- 内联输入框样式 -->
   <style>
-    /* 阅读器头部：标题 + 输入框 */
     .reader-header {
       display: flex;
       flex-wrap: wrap;
@@ -40,7 +39,6 @@
       border-color: #4a90e2;
     }
 
-    /* 小屏下堆叠显示 */
     @media (max-width: 768px) {
       .reader-header {
         flex-direction: column;
@@ -88,14 +86,13 @@
     </div>
 
     <div class="right-panel panel reader-panel">
-      <!-- 标题 + 输入框 -->
       <div class="reader-header">
         <h2 class="section-title">📖 阅读器</h2>
         <form id="file-form" class="file-input-form">
           <input
             type="text"
             id="file-input"
-            placeholder="输入文件路径，如 story.txt"
+            placeholder="输入文件路径或彩蛋关键词"
             class="file-input"
           />
         </form>
@@ -107,7 +104,7 @@
   </div>
 
   <script>
-    // ===== 彩蛋列表（内嵌）=====
+    // ===== 彩蛋列表（关键词不区分大小写）=====
     const easterEggs = [
       { key: 'secret', url: 'https://yumiao-awa.github.io/Client/book/yumiao' },
       { key: 'neko', url: 'img/neko.png' },
@@ -116,13 +113,12 @@
       { key: 'konami', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }
     ];
 
-    // ===== 获取 URL 参数 =====
     function getUrlParam(name) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(name);
     }
 
-    // ===== 加载内容 =====
+    // ===== 加载内容（支持彩蛋 + 文本）=====
     async function loadContent(filename) {
       const contentEl = document.getElementById('reader-content');
       if (!filename) {
@@ -130,15 +126,26 @@
         return;
       }
 
-      const egg = easterEggs.find(item => item.key === filename);
+      const cleanInput = filename.trim();
+      if (!cleanInput) {
+        contentEl.innerHTML = '<p>⚠️ 输入不能为空。</p>';
+        return;
+      }
+
+      // 🔍 不区分大小写匹配彩蛋
+      const egg = easterEggs.find(item => 
+        item.key.toLowerCase() === cleanInput.toLowerCase()
+      );
+
       if (egg && egg.url) {
         window.open(egg.url, '_blank');
         contentEl.innerHTML = `<p>✨ 彩蛋已触发！正在跳转……</p>`;
         return;
       }
 
+      // 📄 否则当作普通文件加载
       try {
-        const response = await fetch(filename);
+        const response = await fetch(cleanInput);
         if (!response.ok) throw new Error('文件未找到');
         const text = await response.text();
         const safeText = text
@@ -151,13 +158,12 @@
       }
     }
 
-    // ===== 设置输入框行为 =====
+    // ===== 设置输入框 =====
     function setupFileInput() {
       const form = document.getElementById('file-form');
       const input = document.getElementById('file-input');
       if (!form || !input) return;
 
-      // 从 URL 自动填充输入框（可选）
       const currentFile = getUrlParam('file');
       if (currentFile) {
         input.value = currentFile;
@@ -165,10 +171,10 @@
 
       form.addEventListener('submit', function(e) {
         e.preventDefault();
-        const filename = input.value.trim();
-        if (filename) {
+        const filename = input.value;
+        if (filename?.trim()) {
           const newUrl = new URL(window.location);
-          newUrl.searchParams.set('file', filename);
+          newUrl.searchParams.set('file', filename.trim());
           window.location.href = newUrl.toString();
         }
       });
@@ -278,7 +284,7 @@
       loadContent(file);
       bindMenuEvents();
       initBackground();
-      setupFileInput(); // 启用输入框
+      setupFileInput();
     });
   </script>
 </body>
