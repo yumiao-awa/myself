@@ -81,7 +81,7 @@
       // 检查是否为彩蛋
       const egg = easterEggs.find(item => item.key === filename);
       if (egg && egg.url) {
-        window.open(egg.url, '_blank');
+        window.open(egg.url);
         contentEl.innerHTML = `<p>✨ 彩蛋已触发！正在跳转……</p>`;
         return;
       }
